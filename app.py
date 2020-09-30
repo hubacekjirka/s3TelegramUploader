@@ -29,6 +29,8 @@ from telegram.ext import (
     ConversationHandler,
 )
 
+from upload import upload_file_to_s3
+
 # Enable logging
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
@@ -95,11 +97,18 @@ def photo(update, context):
     attempt upload to the S3 bucket.
     """
     photo_file = update.message.photo[-1].get_file()
-    photo_file.download(f"cache/{update.update_id}.jpg")
 
-    #TODO: upload picture
-    
-    return ConversationHandler.END
+    file_path = f"cache/{update.update_id}.jpg"
+    photo_file.download(file_path)
+
+    try:
+        upload_file_to_s3(file_path)
+
+    except Exception as e:
+        logger.error(f"Error occured during uploading to S3: {e}")
+
+    finally:
+        return ConversationHandler.END
 
 
 def echo(update, context):
