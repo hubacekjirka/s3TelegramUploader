@@ -1,9 +1,6 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# This program is dedicated to the public domain under the CC0 license.
-
 """
-Simple Bot to reply to Telegram messages.
+S3 telegram uploader bot inspired by python-telegram-bot examples.
+Creadit: https://github.com/python-telegram-bot/python-telegram-bot
 
 First, a few handler functions are defined. Then, those functions are passed to
 the Dispatcher and registered at their respective places.
@@ -13,12 +10,24 @@ Usage:
 Basic Echobot example, repeats messages.
 Press Ctrl-C on the command line or send a signal to the process to stop the
 bot.
+
+Commands for BotFather:
+start - Show welcome message
+upload - Initiate upload conversation
+cancel - Resets ongoing conversation
+help - Displays bot's manual
 """
 
 import logging
 import os
 
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, ConversationHandler
+from telegram.ext import (
+    Updater,
+    CommandHandler,
+    MessageHandler,
+    Filters,
+    ConversationHandler,
+)
 
 # Enable logging
 logging.basicConfig(
@@ -26,6 +35,8 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
+
+bot_token = os.getenv("bot_token")
 upload_passport = os.getenv("upload_password")
 
 SECURITY, PHOTO = range(2)
@@ -35,55 +46,66 @@ SECURITY, PHOTO = range(2)
 # context. Error handlers also receive the raised TelegramError object in error.
 def start(update, context):
     """Send a message when the command /start is issued."""
-    update.message.reply_text("Hi, I'm a bot for the picture of the day app! "
-                              + "If you send me a photo and answer the security "
-                              + "question correctly, I'll put the picture into the "
-                              + "queue for you. How cool is that?!")
+    update.message.reply_text(
+        "Hi, I'm a bot for the picture of the day app! "
+        + "If you send me a photo and answer the security "
+        + "question correctly, I'll put the picture into the "
+        + "queue for you. How cool is that?!"
+    )
     update.message.reply_text("Here are commands you can use: /upload")
 
 
 def help_command(update, context):
     """Send a message when the command /help is issued."""
-    update.message.reply_text("Here are commands you can use: /upload")
+    update.message.reply_text("Here are commands you can use: /start /upload")
 
 
 def upload(update, context):
-    update.message.reply_text(
-        "All right, let's upload some picture...")
-
+    """ Start upload conversation when /upload is issued."""
+    update.message.reply_text("All right, let's upload some picture...")
     update.message.reply_text(
         "You may cancel the upload process anytime by simply typing cancel."
     )
-
     update.message.reply_text(
-        "Just to make sure you know Jirka, what is the secret code for uploading "
+        "Just to make sure you know Jirka and he wants you to contribute "
+        " to the photo of the day. What is the secret code for uploading "
         "a photo?"
     )
-
     return SECURITY
 
 
 def upload_password(update, context):
+    """
+    Asks for upload passport. On success, proceeds to photo upload,
+    otherwise ends the conversation
+    """
     if update.effective_message.text == upload_passport:
         update.message.reply_text("That's correct!")
-        update.message.reply_text("Send me the picture")
+        update.message.reply_text("Send me the picture you would like to upload")
         return PHOTO
 
     else:
-        update.message.reply_text("That's not correct ...")
+        update.message.reply_text("You chose poorly.")
         return ConversationHandler.END
 
 
 def photo(update, context):
+    """
+    Store photo in the cache folder under the update's unique number, then
+    attempt upload to the S3 bucket.
+    """
     photo_file = update.message.photo[-1].get_file()
-    photo_file.download('cache/photo.jpg')
+    photo_file.download(f"cache/{update.update_id}.jpg")
 
+    #TODO: upload picture
+    
     return ConversationHandler.END
 
 
 def echo(update, context):
     """Echo the user message."""
-    update.message.reply_text(update.message.text)
+    update.message.reply_text(f"I don't know what you mean by {update.message.text}")
+    update.message.reply_text("If you're stuck, type /cancel and start over.")
 
 
 def end(update, context):
@@ -96,24 +118,25 @@ def main():
     # Create the Updater and pass it your bot's token.
     # Make sure to set use_context=True to use the new context based callbacks
     # Post version 12 this will no longer be necessary
-    updater = Updater(
-        "1348053801:AAGlXKdupJ2W7zPrrwnWSXA3teq6C6NHtRE", use_context=True
-    )
+    updater = Updater(bot_token, use_context=True)
 
     # Get the dispatcher to register handlers
     dp = updater.dispatcher
 
     conv_handler = ConversationHandler(
-        entry_points=[CommandHandler('upload', upload)],
+        entry_points=[CommandHandler("upload", upload)],
         states={
             SECURITY: [
-                MessageHandler(Filters.text & ~(Filters.command | Filters.regex('^Done$')),
-                               upload_password)],
+                MessageHandler(
+                    Filters.text & ~Filters.regex("^[cC]ancel$"),
+                    upload_password,
+                )
+            ],
             PHOTO: [
                 MessageHandler(Filters.photo, photo),
-            ]
+            ],
         },
-        fallbacks=[MessageHandler(Filters.regex('^cancel$'), end)]
+        fallbacks=[MessageHandler(Filters.regex("^[cC]ancel$"), end)],
     )
 
     dp.add_handler(conv_handler)
