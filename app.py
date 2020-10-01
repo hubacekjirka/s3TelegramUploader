@@ -29,6 +29,8 @@ from telegram.ext import (
     ConversationHandler,
 )
 
+from s3 import upload_file_to_s3, list_s3_files
+
 # Enable logging
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
@@ -94,12 +96,41 @@ def photo(update, context):
     Store photo in the cache folder under the update's unique number, then
     attempt upload to the S3 bucket.
     """
-    photo_file = update.message.photo[-1].get_file()
-    photo_file.download(f"cache/{update.update_id}.jpg")
+    #TODO:
+    photo_file = update.message.document.get_file()
+    #photo_file = update.message.photo[-1].get_file()
 
-    #TODO: upload picture
-    
-    return ConversationHandler.END
+    file_path = f"cache/{update.update_id}.jpg"
+    photo_file.download(file_path)
+
+    try:
+        update.message.reply_text("Got it, uploading ...")
+        upload_file_to_s3(file_path)
+        update.message.reply_text("Finished uploading")
+
+    except Exception as e:
+        logger.error(f"Error occured during uploading to S3: {e}")
+
+    finally:
+        return ConversationHandler.END
+
+
+def list(update, context):
+    """
+    List files present in the upload folder
+    """
+    output = ""
+    try:
+        files = list_s3_files()
+        for f in files:
+            output += f"{f}\n"
+
+    except Exception as e:
+        logger.error(f"Error occured during listing S3 folder: {e}")
+        output = "Something blew up when listing S3 folder."
+
+    finally:
+        update.message.reply_text(output)
 
 
 def echo(update, context):
@@ -133,7 +164,15 @@ def main():
                 )
             ],
             PHOTO: [
-                MessageHandler(Filters.photo, photo),
+                MessageHandler(
+                    # Filters.document ~ accepts message with photo as a document
+                    # Using document upload, telegram doesn't automaticially resize
+                    # the image
+                    #
+                    # Filters.photo ~ standard photo upload when images get resized
+                    # to around 200 KB
+                    Filters.document | Filters.photo,
+                    photo),
             ],
         },
         fallbacks=[MessageHandler(Filters.regex("^[cC]ancel$"), end)],
@@ -144,6 +183,7 @@ def main():
     # on different commands - answer in Telegram
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("help", help_command))
+    dp.add_handler(CommandHandler("list", list))
 
     # on noncommand i.e message - echo the message on Telegram
     dp.add_handler(MessageHandler(Filters.text & ~Filters.command, echo))
