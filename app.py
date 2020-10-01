@@ -21,6 +21,8 @@ help - Displays bot's manual
 import logging
 import os
 
+from uuid import uuid4
+
 from telegram.ext import (
     Updater,
     CommandHandler,
@@ -52,7 +54,9 @@ def start(update, context):
         "Hi, I'm a bot for the picture of the day app! "
         + "If you send me a photo and answer the security "
         + "question correctly, I'll put the picture into the "
-        + "queue for you. How cool is that?!"
+        + "queue for you. How cool is that?! ]\n\n"
+        + "Due to API limitation, I can only accept a single photo at a time. "
+        + "Telegram heavily compresses photos, you better send them as documents."
     )
     update.message.reply_text("Here are commands you can use: /upload")
 
@@ -96,20 +100,32 @@ def photo(update, context):
     Store photo in the cache folder under the update's unique number, then
     attempt upload to the S3 bucket.
     """
-    #TODO:
-    photo_file = update.message.document.get_file()
-    #photo_file = update.message.photo[-1].get_file()
-
-    file_path = f"cache/{update.update_id}.jpg"
-    photo_file.download(file_path)
+    if len(update.message.photo) == 0:
+        # Get photo uploaded as a document ~ full uncompressed size
+        photo_file = update.message.document.get_file()
+        logger.info("Document update received")
+    else:
+        # The api doesn't support multiple photos uploaded within a single message.
+        # Simply taking the last photo in the sequence, first two are thumbnails,
+        # third is the highly compressed photo.
+        photo_file = update.message.photo[-1].get_file()
+        logger.info("Photo update received")
 
     try:
+        file_path = f"cache/{uuid4()}.jpg"
+        photo_file.download(file_path)
+
+        logger.info(f"Uploading photo: {file_path}")
         update.message.reply_text("Got it, uploading ...")
+
         upload_file_to_s3(file_path)
+
+        logger.info(f"Upload successful: {file_path}")
         update.message.reply_text("Finished uploading")
 
     except Exception as e:
-        logger.error(f"Error occured during uploading to S3: {e}")
+        logger.error(f"Error occured during uploading {file_path} to S3: {e}")
+        update.message.reply_text("Something  blew up when uploading to S3")
 
     finally:
         return ConversationHandler.END
@@ -121,9 +137,13 @@ def list(update, context):
     """
     output = ""
     try:
+        logger.info("Listing files")
         files = list_s3_files()
+        logger.info("Listing files successful")
+
+        # Format output as a file per line
         for f in files:
-            output += f"{f}\n"
+            output += f"{f}\n\n"
 
     except Exception as e:
         logger.error(f"Error occured during listing S3 folder: {e}")
@@ -178,6 +198,7 @@ def main():
         fallbacks=[MessageHandler(Filters.regex("^[cC]ancel$"), end)],
     )
 
+    # add conversation handler
     dp.add_handler(conv_handler)
 
     # on different commands - answer in Telegram
