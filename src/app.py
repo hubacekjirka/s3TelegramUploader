@@ -20,6 +20,9 @@ help - Displays bot's manual
 
 import logging
 import os
+import requests
+import json
+import subprocess
 
 from uuid import uuid4
 
@@ -42,6 +45,7 @@ logger = logging.getLogger(__name__)
 
 bot_token = os.getenv("bot_token")
 upload_passport = os.getenv("upload_password")
+root_folder = os.path.dirname(os.path.realpath(__file__))
 
 SECURITY, PHOTO = range(2)
 
@@ -50,6 +54,8 @@ SECURITY, PHOTO = range(2)
 # context. Error handlers also receive the raised TelegramError object in error.
 def start(update, context):
     """Send a message when the command /start is issued."""
+    logger.info("Start command invoked")
+
     update.message.reply_text(
         "Hi, I'm a bot for the picture of the day app! "
         + "If you send me a photo and answer the security "
@@ -63,11 +69,15 @@ def start(update, context):
 
 def help_command(update, context):
     """Send a message when the command /help is issued."""
+    logger.info("Help command invoked")
+
     update.message.reply_text("Here are commands you can use: /start /upload")
 
 
 def upload(update, context):
     """ Start upload conversation when /upload is issued."""
+    logger.info("Upload conversation initiated")
+
     update.message.reply_text("All right, let's upload some picture...")
     update.message.reply_text(
         "You may cancel the upload process anytime by simply typing cancel."
@@ -85,6 +95,8 @@ def upload_password(update, context):
     Asks for upload passport. On success, proceeds to photo upload,
     otherwise ends the conversation
     """
+    logger.info("Asking for upload password invoked")
+
     if update.effective_message.text == upload_passport:
         update.message.reply_text("That's correct!")
         update.message.reply_text("Send me the picture you would like to upload")
@@ -100,6 +112,8 @@ def photo(update, context):
     Store photo in the cache folder under the update's unique number, then
     attempt upload to the S3 bucket.
     """
+    logger.info("Photo command invoked")
+
     if len(update.message.photo) == 0:
         # Get photo uploaded as a document ~ full uncompressed size
         photo_file = update.message.document.get_file()
@@ -112,7 +126,9 @@ def photo(update, context):
         logger.info("Photo update received")
 
     try:
-        file_path = f"cache/{uuid4()}.jpg"
+        file_path = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), "cache", f"{uuid4()}.jpg"
+        )
         photo_file.download(file_path)
 
         logger.info(f"Uploading photo: {file_path}")
@@ -128,6 +144,12 @@ def photo(update, context):
         update.message.reply_text("Something  blew up when uploading to S3")
 
     finally:
+        # Cleanup, enclosed in try-except just in case we blew up on download already
+        try:
+            os.remove(file_path)
+        except Exception:
+            pass
+
         return ConversationHandler.END
 
 
@@ -135,9 +157,10 @@ def list(update, context):
     """
     List files present in the upload folder
     """
+    logger.info("Listing files invoked")
+
     output = ""
     try:
-        logger.info("Listing files")
         files = list_s3_files()
         logger.info("Listing files successful")
 
@@ -153,6 +176,36 @@ def list(update, context):
         update.message.reply_text(output)
 
 
+def diag(update, context):
+    """
+    Returns diagnostic information to user
+    """
+    logger.info("Diagnostic command invoked")
+
+    reply = ""
+
+    # System info
+    hostname = subprocess.check_output("hostname").decode("utf-8")
+    reply += f"Hostname: {hostname}"
+
+    uptime = subprocess.check_output("uptime").decode("utf-8")
+    reply += f"Uptime: {uptime}"
+
+    current_date = subprocess.check_output("date").decode("utf-8")
+    reply += f"Date: {current_date}"
+
+    try:
+        # Public IP
+        r = requests.get("http://ipinfo.io")
+        ipinfo = json.loads(r.text)
+        reply += f"Public IP: {ipinfo['ip']}\n"
+    except Exception as e:
+        logger.error(f"Failed getting public ip from ipinfo.io: {e}")
+        reply += "Couldn't get public ip information from the web service."
+
+    update.message.reply_text(reply)
+
+
 def echo(update, context):
     """Echo the user message."""
     update.message.reply_text(f"I don't know what you mean by {update.message.text}")
@@ -160,6 +213,7 @@ def echo(update, context):
 
 
 def end(update, context):
+    logger.info("Cancel command invoked")
     update.message.reply_text("Never mind...")
     return ConversationHandler.END
 
@@ -192,7 +246,8 @@ def main():
                     # Filters.photo ~ standard photo upload when images get resized
                     # to around 200 KB
                     Filters.document | Filters.photo,
-                    photo),
+                    photo,
+                ),
             ],
         },
         fallbacks=[MessageHandler(Filters.regex("^[cC]ancel$"), end)],
@@ -205,6 +260,7 @@ def main():
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("help", help_command))
     dp.add_handler(CommandHandler("list", list))
+    dp.add_handler(CommandHandler("diag", diag))
 
     # on noncommand i.e message - echo the message on Telegram
     dp.add_handler(MessageHandler(Filters.text & ~Filters.command, echo))
