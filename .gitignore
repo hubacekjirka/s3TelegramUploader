@@ -117,3 +117,4 @@ app/fileStorage/*
 
 # Playground file
 playground.py
+.env_github_runner_x64
