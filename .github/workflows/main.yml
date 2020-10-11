@@ -31,4 +31,4 @@ jobs:
         run: |
           docker build \
           -t hubacekjirka/github_runner_x64 \
-          -f $GITHUB_WORKSPACE/github_runner.dockerfile
+          -f $GITHUB_WORKSPACE/github_runner.dockerfile $GITHUB_WORKSPACE
