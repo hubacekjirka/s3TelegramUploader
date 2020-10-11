@@ -19,8 +19,9 @@ docker build -t hubacekjirka/github_runner_x64 -f ./github_runner.dockerfile .
 ```
 
 Running container
+*-v* open socket with host. Inspired by [~jpetazzo's blog post](https://jpetazzo.github.io/2015/09/03/do-not-use-docker-in-docker-for-ci/).
 ```sh
-docker run --detach --env-file .env_github_runner_x64 hubacekjirka/github_runner_x64
+docker run -it -v /var/run/docker.sock:/var/run/docker.sock --env-file .env_github_runner_x64 hubacekjirka/github_runner_x64
 ```
 
 Stopping container
