@@ -1,6 +1,8 @@
 <h1 align="center">Welcome to S3 Telegram Uploader repo 👋</h1>
 
-> The bot is a supportive application for the [Photo Of The Day app](https://github.com/hubacekjirka/dailyPhotoTwitterBot). It's purpose it to simplify photo upload process to a simple conversation with a bot over Telegram.
+> The bot is a supportive application for the [Photo Of The Day app](https://github.com/hubacekjirka/dailyPhotoTwitterBot). Its purpose is to simplify the photo upload process to a simple conversation with a bot over Telegram.
+
+A CI process automatically kicks in on commit to the main branch. It launches Docker's buildx command for multi-arch builds. My bot instance runs on Raspberry Pi.
 
 > Upload process: 
 
