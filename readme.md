@@ -15,7 +15,7 @@ Rename .env_example to .env and fill in the values.
 
 
 ### Docker
-Running using Docker
+Navigate to the repo's directory and run the following command
 ```sh
 docker run -d --restart unless-stopped --env-file .env hubacekjirka/s3-telegram-uploader:latest
 ```
