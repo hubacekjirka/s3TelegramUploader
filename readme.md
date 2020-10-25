@@ -1,4 +1,5 @@
 <h1 align="center">Welcome to S3 Telegram Uploader repo 👋</h1>
+![Build and push from the main branch](https://github.com/hubacekjirka/s3TelegramUploader/workflows/Build%20and%20push%20from%20the%20main%20branch/badge.svg)
 
 > The bot is a supportive application for the [Photo Of The Day app](https://github.com/hubacekjirka/dailyPhotoTwitterBot). Its purpose is to simplify the photo upload process to a simple conversation with a bot over Telegram.
 
@@ -8,7 +9,6 @@ A CI process automatically kicks in on commit to the main branch. It launches Do
 
 > <img src="https://raw.githubusercontent.com/hubacekjirka/s3TelegramUploader/docker-compose/bot.jpeg" width="50%" height="50%"/>
 
-### 🏠 [Homepage](http://blog.hubacek.uk)
 
 ## Usage
 Rename .env_example to .env and fill in the values.
@@ -30,6 +30,7 @@ docker-compose up -d --remove-orphans
 
 👤 **jiri hubacek**
 
+* Web: [Blog](https://blog.hubacek.uk)
 * Twitter: [@hubacekjirka](https://twitter.com/hubacekjirka)
 * Github: [@hubacekjirka](https://github.com/hubacekjirka)
 
