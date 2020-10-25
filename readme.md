@@ -1,34 +1,45 @@
-docker build . --tag hubacekjirka/s3telegramuploader
+<h1 align="center">Welcome to S3 Telegram Uploader repo 👋</h1>
 
-docker run --env-file .env -it hubacekjirka/s3telegramuploader
+> The bot is a supportive application for the [Photo Of The Day app](https://github.com/hubacekjirka/dailyPhotoTwitterBot). It's purpose it to simplify photo upload process to a simple conversation with a bot over Telegram.
+
+> Upload process: 
+
+> <img src="https://raw.githubusercontent.com/hubacekjirka/s3TelegramUploader/docker-compose/bot.jpeg" width="50%" height="50%"/>
+
+### 🏠 [Homepage](http://blog.hubacek.uk)
+
+## Usage
+Rename .env_example to .env and fill in the values.
 
 
-docker run -d --restart unless-stopped --env-file .env -it hubacekjirka/s3telegramuploader
-
-curl ipinfo.io
-
-
-
-# GitHub Runner
-Credits:
-- [GitHub blog](https://github.blog/2020-08-04-github-actions-self-hosted-runners-on-google-cloud/)
-## x64 Architecture
-Docker Build
+### Docker
+Running using Docker
 ```sh
-docker build -t hubacekjirka/github_runner_x64 -f ./github_runner.dockerfile .
+docker run -d --restart unless-stopped --env-file .env hubacekjirka/s3-telegram-uploader:latest
 ```
 
-Running container
-*-v* open socket with host. Inspired by [~jpetazzo's blog post](https://jpetazzo.github.io/2015/09/03/do-not-use-docker-in-docker-for-ci/).
+### Docker-compose
+Navigate to the repo's directory and run the following command
 ```sh
-docker run -it -v /var/run/docker.sock:/var/run/docker.sock --env-file .env_github_runner_x64 hubacekjirka/github_runner_x64
+docker-compose up -d --remove-orphans
 ```
 
-Stopping container
-```sh
-docker stop <container id>
-```
-Stopping the container gracefully is important is the runner needs to reregister itself.
+## Author
 
-## ARM32 Architecture
-TBD
+👤 **jiri hubacek**
+
+* Twitter: [@hubacekjirka](https://twitter.com/hubacekjirka)
+* Github: [@hubacekjirka](https://github.com/hubacekjirka)
+
+
+## Show your support
+
+Give a ⭐️ if this project helped you!
+
+## 📝 License
+
+Copyright © 2020 [jiri hubacek](https://github.com/hubacekjirka).<br />
+This project is [MIT](https://github.com/hubacekjirka/dailyPhotoTwitterBot/blob/master/LICENSE) licensed.
+
+***
+_This README was generated with ❤️ by [readme-md-generator](https://github.com/kefranabg/readme-md-generator)_
