@@ -7,7 +7,7 @@
 
 > Upload process: 
 
-> <img src="https://raw.githubusercontent.com/hubacekjirka/s3TelegramUploader/docker-compose/bot.jpeg" width="35%" height="35%"/>
+> <img src="https://raw.githubusercontent.com/hubacekjirka/s3TelegramUploader/master/bot.jpeg" width="35%" height="35%"/>
 
 
 ## Usage
