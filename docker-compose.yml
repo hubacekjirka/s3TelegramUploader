@@ -1,6 +1,6 @@
 version: "3.8"
 services:
   bot:
-    image: "hubacekjirka/s3telegramuploader"
+    image: "hubacekjirka/s3-telegram-uploader:latest"
     env_file: .env
     restart: unless-stopped
