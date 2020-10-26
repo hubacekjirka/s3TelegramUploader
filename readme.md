@@ -26,6 +26,9 @@ Navigate to the repo's directory and run the following command
 docker-compose up -d --remove-orphans
 ```
 
+### Auto pulling
+Automatic pulling of the docker image from docker hub may be scheduled as a cron job. The job would invoke the docker_auto_pull.sh script.
+
 ## Author
 
 👤 **jiri hubacek**
