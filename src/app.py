@@ -182,7 +182,18 @@ def diag(update, context):
     """
     logger.info("Diagnostic command invoked")
 
+    update.message.reply_text(_get_diag())
+
+
+def _get_diag():
+    """
+    Retrieves diagnostic information from the underlying operating system
+    """
     reply = ""
+
+    # Linux system info
+    linux_system_info = subprocess.check_output(["uname", "-v"]).decode("utf-8")
+    reply += f"{linux_system_info}"
 
     # System info
     hostname = subprocess.check_output("hostname").decode("utf-8")
@@ -203,7 +214,7 @@ def diag(update, context):
         logger.error(f"Failed getting public ip from ipinfo.io: {e}")
         reply += "Couldn't get public ip information from the web service."
 
-    update.message.reply_text(reply)
+    return reply
 
 
 def echo(update, context):
