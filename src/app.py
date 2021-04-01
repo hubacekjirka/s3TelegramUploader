@@ -35,6 +35,7 @@ from telegram.ext import (
 )
 
 from s3 import upload_file_to_s3, list_s3_files
+from quote import random_quote
 
 # Enable logging
 logging.basicConfig(
@@ -99,6 +100,7 @@ def upload_password(update, context):
 
     if update.effective_message.text == upload_passport:
         update.message.reply_text("That's correct!")
+        update.message.reply_text(f"Random movie quote: {random_quote()}")
         update.message.reply_text("Send me the picture you would like to upload")
         return PHOTO
 
@@ -183,6 +185,7 @@ def diag(update, context):
     logger.info("Diagnostic command invoked")
 
     update.message.reply_text(_get_diag())
+    update.message.reply_text(f"Quote: {random_quote()}")
 
 
 def _get_diag():
