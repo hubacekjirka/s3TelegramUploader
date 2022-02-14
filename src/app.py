@@ -20,6 +20,7 @@ help - Displays bot's manual
 
 import logging
 import os
+from urllib.request import HTTPRedirectHandler
 import requests
 import json
 import subprocess
@@ -115,11 +116,20 @@ def photo(update, context):
     attempt upload to the S3 bucket.
     """
     logger.info("Photo command invoked")
+    file_type = None
 
-    if len(update.message.photo) == 0:
+    if update.message.document:
         # Get photo uploaded as a document ~ full uncompressed size
         photo_file = update.message.document.get_file()
-        logger.info("Document update received")
+
+        if update.message.document.mime_type == "image/heic":
+            file_type = "heic"
+        elif update.message.document.mime_type == "image/jpeg":
+            file_type = "jpg"
+        else:
+            raise Exception("Unrecognized file format")
+
+        logger.info(f"Document update received of file type {file_type}")
     else:
         # The api doesn't support multiple photos uploaded within a single message.
         # Simply taking the last photo in the sequence, first two are thumbnails,
@@ -129,9 +139,17 @@ def photo(update, context):
 
     try:
         file_path = os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), "cache", f"{uuid4()}.jpg"
+            os.path.dirname(os.path.realpath(__file__)), "cache", f"{uuid4()}"
         )
         photo_file.download(file_path)
+
+        if file_type == "heic":
+            logger.info("Converting from HEIC to jpg")
+
+            # TODO: convert
+        elif file_type == "jpg":
+            # rename
+            pass
 
         logger.info(f"Uploading photo: {file_path}")
         update.message.reply_text("Got it, uploading ...")
@@ -142,8 +160,8 @@ def photo(update, context):
         update.message.reply_text("Finished uploading")
 
     except Exception as e:
+        update.message.reply_text(f"Something  blew up when uploading to S3. {e}")
         logger.error(f"Error occured during uploading {file_path} to S3: {e}")
-        update.message.reply_text("Something  blew up when uploading to S3")
 
     finally:
         # Cleanup, enclosed in try-except just in case we blew up on download already
