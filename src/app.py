@@ -135,38 +135,42 @@ def photo(update, context):
         # Simply taking the last photo in the sequence, first two are thumbnails,
         # third is the highly compressed photo.
         photo_file = update.message.photo[-1].get_file()
+        file_type = "jpg"
         logger.info("Photo update received")
 
     try:
-        file_path = os.path.join(
+        local_raw_file_path = os.path.join(
             os.path.dirname(os.path.realpath(__file__)), "cache", f"{uuid4()}"
         )
-        photo_file.download(file_path)
+        local_jpg_file_path = f"{local_raw_file_path}.jpg"
 
+        # Download from Telegram API
+        photo_file.download(local_raw_file_path)
+
+        # Convert to jpg if HEIC is recfeived
         if file_type == "heic":
             logger.info("Converting from HEIC to jpg")
-
-            # TODO: convert
+            subprocess.call(["convert", local_raw_file_path, local_jpg_file_path])
         elif file_type == "jpg":
-            # rename
-            pass
+            os.rename(local_raw_file_path, local_jpg_file_path)
 
-        logger.info(f"Uploading photo: {file_path}")
+        logger.info(f"Uploading photo: {local_raw_file_path}")
         update.message.reply_text("Got it, uploading ...")
 
-        upload_file_to_s3(file_path)
+        upload_file_to_s3(local_jpg_file_path)
 
-        logger.info(f"Upload successful: {file_path}")
+        logger.info(f"Upload successful: {local_jpg_file_path}")
         update.message.reply_text("Finished uploading")
 
     except Exception as e:
         update.message.reply_text(f"Something  blew up when uploading to S3. {e}")
-        logger.error(f"Error occured during uploading {file_path} to S3: {e}")
+        logger.error(f"Error occured during uploading {local_raw_file_path} to S3: {e}")
 
     finally:
         # Cleanup, enclosed in try-except just in case we blew up on download already
         try:
-            os.remove(file_path)
+            os.remove(local_raw_file_path)
+            os.remove(local_jpg_file_path)
         except Exception:
             pass
 
